@@ -6,8 +6,9 @@ var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}
 //en el clusters almaceno todos los markers
 var markers = L.markerClusterGroup();
 var data_markers = [];
-
 let foodKind = document.getElementById('kind_food_selector');
+let dataArray;
+let option;
 
 function onMapLoad() {
 
@@ -20,35 +21,36 @@ function onMapLoad() {
 	}).then(data => {
 		const html = data.map(apiRestaurants => {
 
-			// Adding markers
-			markers.addLayer(L.marker([apiRestaurants.lat, apiRestaurants.lng])).addTo(map);
+			// Adding markers &
+			markers.addLayer(L.marker([apiRestaurants.lat, apiRestaurants.lng])
+				.bindPopup(`<strong style='color: #84b819'>${apiRestaurants.name}: <br>${apiRestaurants.address}`))
+				.addTo(map);
 
-			map.addLayer(markers);
-			// Adding info boxes
-			markers.bindPopup(`${apiRestaurants.name}: <br>${apiRestaurants.address}`);
+			// map.addLayer(markers);
 
 			// Adding to array
 			data_markers.push(apiRestaurants);
 
-			return apiRestaurants.kind_food;
+			dataArray = apiRestaurants.kind_food.split(',');
+			console.log(dataArray);
+
+			return dataArray;
 		});
 
-		// Getting options
-		for (let option in html) {
-			let newOption = document.createElement('option');
-			let pair = html[option];
-			newOption.innerHTML = pair;
-			foodKind.options.add(newOption);
+		for (let i = 0; i < data_markers.length; i++) {
+			option = document.createElement('option');
+			option.text = data[i].kind_food;
+			// option.value = data[i].abbreviation;
+			foodKind.add(option);
 		}
 
 	}).catch(error => {
 		console.log(error);
 	});
-
 }
 
 $('#kind_food_selector').on('change', function () {
-	// console.log(this.value);
+	console.log(this.value);
 	render_to_map(data_markers, this.value);
 });
 
@@ -62,5 +64,13 @@ function render_to_map(data_markers, filter) {
 		2) Realizo un bucle para decidir que marcadores cumplen el filtro, y los agregamos al mapa
 	*/
 
+	// Clearing Markers
+	markers.clearLayers();
+	map.closePopup();
 
-}
+	// Adding Layer Group
+	let layerGroup = L.layerGroup().addTo(map);
+	markers = markers[apiRestaurants.lat, apiRestaurants.lng];
+
+	console.log(markers);
+}    
