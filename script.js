@@ -1,76 +1,88 @@
-var map = L.map('mapid').on('load', onMapLoad).setView([41.400, 2.206], 9);
+let map = L.map('mapid').on('load', onMapLoad).setView([41.400, 2.206], 9);
 //map.locate({setView: true, maxZoom: 17});
 
-var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map);
+let tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map);
 
-//en el clusters almaceno todos los markers
-var markers = L.markerClusterGroup();
-var data_markers = [];
+// Global variables
+let markers = L.markerClusterGroup();
+let data_markers = [];
+let cuisine = [];
 let foodKind = document.getElementById('kind_food_selector');
-let dataArray;
-let option;
 
 function onMapLoad() {
 
-	// Fetching from API
-	fetch("http://localhost/mapa/api/apiRestaurants.php").then(response => {
-		if (!response.ok) {
-			throw Error('ERROR');
-		}
-		return response.json();
-	}).then(data => {
-		const html = data.map(apiRestaurants => {
+	// Ajax call to API
+	$.ajax({
+		type: "POST",
+		url: 'http://localhost/mapa/api/apiRestaurants.php',
+		data: String,
+		success: null,
+		dataType: 'json'
+	})
 
-			// Adding markers &
-			markers.addLayer(L.marker([apiRestaurants.lat, apiRestaurants.lng])
-				.bindPopup(`<strong style='color: #84b819'>${apiRestaurants.name}: <br>${apiRestaurants.address}`))
-				.addTo(map);
+		// Callbacks
+		.done(function (data) {
+			data_markers = data;
+			console.log("Success");
 
-			// map.addLayer(markers);
+			// Looping throw markers
+			$.each(data_markers, function (index) {
 
-			// Adding to array
-			data_markers.push(apiRestaurants);
+				// Splitting strings (cuisines)
+				data_markers[index].kind_food.split(',').forEach(function (item) {
 
-			dataArray = apiRestaurants.kind_food.split(',');
-			console.log(dataArray);
+					// Looping throw cuisines
+					if (!cuisine.includes(item)) {
 
-			return dataArray;
+						// Pushing into cuisine array
+						cuisine.push(item);
+
+						// Generating option (select)
+						if (index === 0) $(foodKind).html(new Option('Select cuisine Type', 'All'));
+						$(foodKind).append(new Option(item));
+
+						// Calling "render_to_map" function
+						render_to_map(data_markers, 'All');
+					}
+				});
+			});
+
+			// Error message
+		}).fail(function () {
+			console.log('error');
 		});
-
-		for (let i = 0; i < data_markers.length; i++) {
-			option = document.createElement('option');
-			option.text = data[i].kind_food;
-			// option.value = data[i].abbreviation;
-			foodKind.add(option);
-		}
-
-	}).catch(error => {
-		console.log(error);
-	});
 }
 
-$('#kind_food_selector').on('change', function () {
+// Calling "render_to_map" function, when cuisine is selected
+$(foodKind).on('change', function () {
 	console.log(this.value);
 	render_to_map(data_markers, this.value);
 });
 
-
-
+// Rendering to Map
 function render_to_map(data_markers, filter) {
-
-	/*
-	FASE 3.2
-		1) Limpio todos los marcadores
-		2) Realizo un bucle para decidir que marcadores cumplen el filtro, y los agregamos al mapa
-	*/
 
 	// Clearing Markers
 	markers.clearLayers();
 	map.closePopup();
 
 	// Adding Layer Group
-	let layerGroup = L.layerGroup().addTo(map);
-	markers = markers[apiRestaurants.lat, apiRestaurants.lng];
+	$.each(data_markers, function (index) {
 
-	console.log(markers);
+		// Filtering and splitting strings (cuisines)
+		if (filter === 'All' || data_markers[index].kind_food.split(',').includes(filter)) {
+
+			// Adding the selected cuisine 
+			let marker = L.marker([data_markers[index].lat, data_markers[index].lng])
+				.bindPopup(`
+					<strong style='color: #84b819'>
+					${data_markers[index].name}: <br> 
+					Address: ${data_markers[index].address}
+				`);
+
+			// Adding markers
+			map.addLayer(markers);
+			markers.addLayer(marker);
+		}
+	});
 }    
